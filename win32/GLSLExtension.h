@@ -44,6 +44,8 @@ public:
     virtual bool OnUserStrip( int control, int change );
     virtual bool NeedsOnClose();*/
 private:
+    void FromCString();
+    void CopyToCString();
     ExtensionAPI *m_pHost;
     bool m_bWaitNextKey;
 };
