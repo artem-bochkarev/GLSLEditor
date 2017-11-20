@@ -1,6 +1,10 @@
-*.lib
-*.exe
-*.dll
+*.html
+*.js
+*.css
+*.svg
 *.suo
+*.idb
+*.pdb
+*.user
 Debug/
 Release/
