@@ -7,7 +7,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <stdlib.h>
 #include <stdio.h>
-static const struct
+#include <string>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <regex>
+
+/*static const struct
 {
     float x, y;
     float r, g, b;
@@ -32,7 +38,7 @@ static const char* fragment_shader_text =
 "void main()\n"
 "{\n"
 "    gl_FragColor = vec4(color, 1.0);\n"
-"}\n";
+"}\n";*/
 static void error_callback( int error, const char* description )
 {
     fprintf( stderr, "Error: %s\n", description );
@@ -42,16 +48,71 @@ static void key_callback( GLFWwindow* window, int key, int scancode, int action,
     if ( key == GLFW_KEY_ESCAPE && action == GLFW_PRESS )
         glfwSetWindowShouldClose( window, GLFW_TRUE );
 }
-int main( void )
+int main( int argc, char *argv[] )
 {
     GLFWwindow* window;
-    GLuint vertex_buffer, vertex_shader, fragment_shader, program;
-    GLint mvp_location, vpos_location, vcol_location;
     glfwSetErrorCallback( error_callback );
     if ( !glfwInit() )
         exit( EXIT_FAILURE );
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 2 );
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 0 );
+    std::string filename( "" );
+    for ( int i = 1; i<argc; ++i )
+    {
+        std::string tmp = argv[ i ];
+        if ( tmp.compare( "-c" ) == 0 )
+        {
+            filename = argv[ i+1 ];
+            break;
+        }
+        else
+        {
+            filename = argv[ i ];
+            break;
+        }
+    }
+
+    std::ifstream ifs;
+    ifs.open ( filename, std::ifstream::in );
+    std::stringstream ss;
+
+    std::regex rver( "(#version\\s+)(\\d)(\\d)(\\d)" );
+    while ( ifs.good() ) {
+        std::string line;
+        std::getline( ifs, line );
+        ss << line << "\r\n";
+    }
+    ifs.close();
+
+    std::string text = ss.str();
+    std::cmatch m;
+    int verMaj, verMin;
+    if ( std::regex_search( text.c_str(), m, rver ) )
+    {
+        std::stringstream s1;
+        s1 << m[ 2 ] << " " << m[3];
+        s1 >> verMaj >> verMin;
+    }
+
+    bool bVertexShader = false, bGeometryShader = false;
+    std::regex rvertex( "gl_Position" );
+    if ( std::regex_search( text.c_str(), m, rvertex ) )
+    {
+        bVertexShader = true;
+    }
+
+    std::regex rgeometry( "EmitVertex\\s*(\\s*)" );
+    if ( std::regex_search( text.c_str(), m, rgeometry ) )
+    {
+        bGeometryShader = true;
+    }
+
+    if ( verMaj < 3 )
+    {
+        verMaj = 2;
+        verMin = 1;
+    }
+    glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, verMaj );
+    glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, verMin );
+    glfwWindowHint( GLFW_VISIBLE, GLFW_FALSE );
     window = glfwCreateWindow( 640, 480, "Simple example", NULL, NULL );
     if ( !window )
     {
@@ -67,9 +128,42 @@ int main( void )
         exit( EXIT_FAILURE );
     }
 
-    glfwSwapInterval( 1 );
+    GLenum shaderType = GL_VERTEX_SHADER;
+    if ( bVertexShader )
+    {
+        if ( bGeometryShader )
+            shaderType = GL_GEOMETRY_SHADER;
+    }
+    else
+    {
+        shaderType = GL_FRAGMENT_SHADER;
+    }
+    GLuint shader = glCreateShader( shaderType );
+    const char *c[ 1 ] = {text.c_str()};
+    glShaderSource( shader, 1, c, NULL );
+    glCompileShader( shader );
+    GLint bStatus;
+    glGetShaderiv( shader, GL_COMPILE_STATUS, &bStatus );
+    //if ( bStatus == false )
+    {
+        GLint length;
+        glGetShaderiv( shader, GL_INFO_LOG_LENGTH, &length );
+        if ( length > 0 )
+        {
+            char* txt = new char[ length + 1 ];
+            GLint rlength;
+            glGetShaderInfoLog( shader, length, &rlength, txt );
+            std::cout << txt;
+        }
+    }
+    if ( bStatus == GL_TRUE )
+    {
+        std::cout << "Succeeded\n";
+    }
+
+    //glfwSwapInterval( 1 );
     // NOTE: OpenGL error checks have been omitted for brevity
-    glGenBuffers( 1, &vertex_buffer );
+    /*glGenBuffers( 1, &vertex_buffer );
     glBindBuffer( GL_ARRAY_BUFFER, vertex_buffer );
     glBufferData( GL_ARRAY_BUFFER, sizeof( vertices ), vertices, GL_STATIC_DRAW );
     vertex_shader = glCreateShader( GL_VERTEX_SHADER );
@@ -133,7 +227,7 @@ int main( void )
         glDrawArrays( GL_TRIANGLES, 0, 3 );
         glfwSwapBuffers( window );
         glfwPollEvents();
-    }
+    }*/
     glfwDestroyWindow( window );
     glfwTerminate();
     exit( EXIT_SUCCESS );
