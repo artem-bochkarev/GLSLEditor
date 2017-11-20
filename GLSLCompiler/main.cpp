@@ -75,13 +75,33 @@ int main( void )
     vertex_shader = glCreateShader( GL_VERTEX_SHADER );
     glShaderSource( vertex_shader, 1, &vertex_shader_text, NULL );
     glCompileShader( vertex_shader );
+    GLint bStatus;
+    glGetShaderiv( vertex_shader, GL_COMPILE_STATUS, &bStatus );
+    if ( bStatus == false )
+    {
+        glfwTerminate();
+        exit( EXIT_FAILURE );
+    }
     fragment_shader = glCreateShader( GL_FRAGMENT_SHADER );
     glShaderSource( fragment_shader, 1, &fragment_shader_text, NULL );
     glCompileShader( fragment_shader );
+    glGetShaderiv( fragment_shader, GL_COMPILE_STATUS, &bStatus );
+    if ( bStatus == false )
+    {
+        glfwTerminate();
+        exit( EXIT_FAILURE );
+    }
     program = glCreateProgram();
     glAttachShader( program, vertex_shader );
     glAttachShader( program, fragment_shader );
     glLinkProgram( program );
+    glGetProgramiv( program, GL_LINK_STATUS, &bStatus );
+    glGetShaderiv( vertex_shader, GL_COMPILE_STATUS, &bStatus );
+    if ( bStatus == false )
+    {
+        glfwTerminate();
+        exit( EXIT_FAILURE );
+    }
     mvp_location = glGetUniformLocation( program, "MVP" );
     vpos_location = glGetAttribLocation( program, "vPos" );
     vcol_location = glGetAttribLocation( program, "vCol" );

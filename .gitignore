@@ -6,5 +6,7 @@
 *.idb
 *.pdb
 *.user
+*.db
+*.opendb
 Debug/
 Release/
